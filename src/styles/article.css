@@ -774,7 +774,13 @@ sup a.basic-link {
    global reset) because ::after belongs to the hash-highlight overlay
    (`.article h2.target::after`). */
 .article > h2 {
-  padding-top: 2rem;
+  /* 2rem gap above = 1rem margin + 1rem padding. Only the padding sits
+     inside the border box, so the hash-highlight overlay (.target::after,
+     inset -.5rem) covers the same range as benji.org's headings — a
+     padding-top: 2rem here would stretch the highlight 2.5rem above the
+     text. */
+  margin-top: 1rem;
+  padding-top: 1rem;
   align-items: center;
   gap: 0.75rem;
   font-size: 0.8125rem;
@@ -790,7 +796,9 @@ sup a.basic-link {
   background: rgba(0, 0, 0, 0.08);
 }
 .article > h3 {
-  padding-top: 1.25rem;
+  /* Same split as h2: keep the box's padding at benji's 1rem. */
+  margin-top: 0.25rem;
+  padding-top: 1rem;
   font-size: 0.8125rem;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.7);
