@@ -3,11 +3,14 @@
   "name": "weave-chat",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
+  "routes": [{ "pattern": "chat.xinghan.me", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
   "durable_objects": {
     "bindings": [{ "name": "CHAT_ROOM", "class_name": "ChatRoom" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ChatRoom"] }],
   "vars": {
-    "ALLOWED_ORIGINS": "https://weave-blog.opportunities.workers.dev,http://localhost:3000"
+    "ALLOWED_ORIGINS": "https://xinghan.me,http://localhost:3000"
   }
 }

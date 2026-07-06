@@ -102,7 +102,7 @@ npx wrangler deploy --config chat-worker/wrangler.jsonc            # deploy
 
 In `next dev` the component connects to `http://localhost:8788` (override
 with `NEXT_PUBLIC_CHAT_ORIGIN`); in production it connects to
-`https://weave-chat.opportunities.workers.dev`, which only accepts the
+`https://chat.xinghan.me`, which only accepts the
 origins listed in `chat-worker/wrangler.jsonc` `vars.ALLOWED_ORIGINS`.
 
 ## Selection-system contract (data-block / data-atomic)

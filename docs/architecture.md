@@ -1,7 +1,7 @@
 # weave-blog 技术架构
 
 日期：2026-07-06（首版部署）
-线上地址：<https://weave-blog.opportunities.workers.dev>
+线上地址：<https://xinghan.me>
 
 ## 1. 项目定位与来源
 
@@ -161,7 +161,7 @@ export const dynamicParams = false;    // 未知 slug 一律 404，不回退 SSR
 ```
 静态 HTML (SSG)
   → hydrate <Chat> 岛 (src/components/mdx/Chat.tsx)
-    → WebSocket wss://weave-chat.opportunities.workers.dev/ws?name=…（跨域）
+    → WebSocket wss://chat.xinghan.me/ws?name=…（跨域）
       → chat-worker/src/index.ts（Origin allowlist 校验 → idFromName("lobby")）
         → ChatRoom Durable Object（WebSocket Hibernation API）
           → ctx.storage.sql messages 表（保留最近 100 条）

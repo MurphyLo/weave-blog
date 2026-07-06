@@ -21,7 +21,7 @@ const CHAT_ORIGIN =
   process.env.NEXT_PUBLIC_CHAT_ORIGIN ??
   (process.env.NODE_ENV === "development"
     ? "http://localhost:8788"
-    : "https://weave-chat.opportunities.workers.dev");
+    : "https://chat.xinghan.me");
 
 type Entry =
   | { kind: "msg"; m: ChatMessage }

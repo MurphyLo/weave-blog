@@ -15,7 +15,7 @@ const SITE = {
   name: "Weave",
   description:
     "A personal blog focused on interaction and animation experiments.",
-  url: "https://weave-blog.opportunities.workers.dev",
+  url: "https://xinghan.me",
 };
 
 const root = process.cwd();
