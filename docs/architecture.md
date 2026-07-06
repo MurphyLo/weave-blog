@@ -172,6 +172,11 @@ export const dynamicParams = false;    // 未知 slug 一律 404，不回退 SSR
   直接 import 进客户端 bundle。
 - 防滥用：Origin allowlist（`vars.ALLOWED_ORIGINS`）、每连接 1 条/秒限流
   （时间戳存 WS attachment，休眠安全）、280 字上限、昵称服务端二次校验。
+- 昵称在线独占：`fetch` 时扫描 `getWebSockets()` 的 attachment，同名（不分
+  大小写）已在线则先完成握手再以 close code `4409`（`CLOSE_NAME_TAKEN`）
+  关闭——浏览器读不到失败升级的 HTTP 状态码，只能靠 close code 区分"名字
+  被占"与"服务不可用"。客户端收到 4409 回门禁并提示，不进重连循环（断线
+  重连撞上自己未被回收的旧连接时同样落到门禁，重新加入即可）。
 - 博客侧对 chat-worker **零依赖**：博客的 wrangler/OpenNext/部署流程不变，
   `tsconfig.json` exclude 了 `chat-worker`（workers 类型与 DOM lib 隔离）；
   删除聊天室 = 删 `chat-worker/` + `Chat.tsx` + mdx 注册 + CSS 块。

@@ -1,6 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 
 import {
+  CLOSE_NAME_TAKEN,
   HISTORY_LIMIT,
   MAX_MESSAGE_LEN,
   MIN_INTERVAL_MS,
@@ -51,6 +52,20 @@ export class ChatRoom extends DurableObject<Env> {
 
     const pair = new WebSocketPair();
     const [client, server] = [pair[0], pair[1]];
+
+    // Names are exclusive while their holder is online (case-insensitive).
+    // Complete the handshake on a plain (non-hibernation) accept and close
+    // with the dedicated code so the browser can tell "taken" from "down".
+    const taken = this.ctx.getWebSockets().some((ws) => {
+      const a = ws.deserializeAttachment() as Attachment | null;
+      return a !== null && a.name.toLowerCase() === name.toLowerCase();
+    });
+    if (taken) {
+      server.accept();
+      server.close(CLOSE_NAME_TAKEN, "name in use");
+      return new Response(null, { status: 101, webSocket: client });
+    }
+
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({ name, lastMsgTs: 0 } satisfies Attachment);
 

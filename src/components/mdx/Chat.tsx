@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import NumberFlow from "@number-flow/react";
 
 import {
+  CLOSE_NAME_TAKEN,
   MAX_MESSAGE_LEN,
   MAX_NAME_LEN,
   sanitizeName,
@@ -38,6 +39,7 @@ export function Chat() {
   const [online, setOnline] = useState(0);
   const [draft, setDraft] = useState("");
   const [hint, setHint] = useState<string | null>(null);
+  const [gateError, setGateError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(false);
 
   const selfRef = useRef<string | null>(null);
@@ -109,9 +111,16 @@ export function Chat() {
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (e) => {
       if (unmountedRef.current || wsRef.current !== ws) return;
       wsRef.current = null;
+      if (e.code === CLOSE_NAME_TAKEN) {
+        // Someone (possibly our own not-yet-reaped old socket) holds the
+        // name; back to the gate instead of a doomed reconnect loop.
+        setGateError("That name is taken right now.");
+        setPhase("gate");
+        return;
+      }
       if (!everOpenedRef.current && attemptsRef.current >= 2) {
         setPhase("offline");
         return;
@@ -131,6 +140,7 @@ export function Chat() {
     const name = sanitizeName(nameDraft);
     if (!name) return;
     localStorage.setItem("chat:name", name);
+    setGateError(null);
     attemptsRef.current = 0;
     everOpenedRef.current = false;
     connect(name);
@@ -206,7 +216,9 @@ export function Chat() {
             </>
           ) : (
             <>
-              <p className="chat-gate-note">Pick a name to join the chat.</p>
+              <p className="chat-gate-note">
+                {gateError ?? "Pick a name to join the chat."}
+              </p>
               <form className="chat-gate-form" onSubmit={join}>
                 <input
                   className="chat-name-input"

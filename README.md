@@ -59,7 +59,8 @@ client.
   vote validation)
 - `<Chat />` — live chat room over a WebSocket to the standalone
   `weave-chat` worker (Durable Object + hibernation API; single fixed room,
-  last 100 messages persisted in the DO's SQLite storage)
+  last 100 messages persisted in the DO's SQLite storage; nicknames are
+  exclusive while online — a duplicate join is closed with code 4409)
 
 ## Interactive components + backend
 
