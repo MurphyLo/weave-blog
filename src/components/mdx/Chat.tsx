@@ -194,7 +194,9 @@ export function Chat() {
         )}
       </div>
 
-      {phase === "gate" || phase === "offline" ? (
+      {/* Stay on the gate until init actually arrives — an initial connect
+          must not flash an empty chat before failing (e.g. name taken). */}
+      {phase === "gate" || phase === "offline" || phase === "connecting" ? (
         <div className="chat-gate">
           {phase === "offline" ? (
             <>
@@ -217,7 +219,14 @@ export function Chat() {
           ) : (
             <>
               <p className="chat-gate-note">
-                {gateError ?? "Pick a name to join the chat."}
+                {phase === "connecting" ? (
+                  <>
+                    <span className="chat-dot" aria-hidden="true" />
+                    Joining…
+                  </>
+                ) : (
+                  (gateError ?? "Pick a name to join the chat.")
+                )}
               </p>
               <form className="chat-gate-form" onSubmit={join}>
                 <input
@@ -227,11 +236,12 @@ export function Chat() {
                   maxLength={MAX_NAME_LEN}
                   placeholder="Your name"
                   aria-label="Nickname"
+                  disabled={phase === "connecting"}
                 />
                 <button
                   type="submit"
                   className="chat-join-button"
-                  disabled={!sanitizeName(nameDraft)}
+                  disabled={phase === "connecting" || !sanitizeName(nameDraft)}
                 >
                   Join
                 </button>
