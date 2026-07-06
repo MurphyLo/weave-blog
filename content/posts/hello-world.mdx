@@ -1,0 +1,71 @@
+---
+title: Hello, Weave
+date: 2026-07-06
+description: A seed post exercising every part of the MDX pipeline — headings, code, math, footnotes, images and interactive islands.
+tags: [meta]
+math: true
+---
+
+This is the seed post for the weave blog. It exists to exercise the full
+content pipeline: GFM, build-time syntax highlighting, KaTeX math,
+footnotes[^1], and the `data-block` selection contract.
+
+## Typography
+
+Body text is set in Inter at 0.875rem with a 460 weight. *Emphasis* swaps to
+a serif italic, **strong** stays Inter, and `inline code` uses the mono
+stack. Links look like [this one to MDX](https://mdxjs.com).
+
+> Blockquotes mark the inner paragraph as the selectable block, not the
+> quote wrapper — blocks never nest.
+
+### Lists
+
+- Tight list items are blocks themselves
+- Including ones with `inline code`
+- And a third for good measure
+
+1. Ordered lists work the same way
+2. Second item
+
+## Code
+
+```tsx title="example.tsx"
+export function Greeting({ name }: { name: string }) {
+  return <p>Hello, {name}</p>;
+}
+```
+
+## Math
+
+Inline math like $e^{i\pi} + 1 = 0$ flows with the text, while display math
+stands alone:
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}
+$$
+
+## Media
+
+![A rough-edges screenshot placeholder](/images/hello-world/sample.png)
+
+<Video src="/images/hello-world/sample.mp4" caption="Video embeds are atomic units too." />
+
+## Components
+
+<Notation label="An annotated aside, floating to the right on desktop.">
+  This paragraph is bracketed by a rough-notation stroke when it scrolls
+  into view — one of the ported benji components.
+</Notation>
+
+<Demo caption="A live interactive island inside static content.">
+  <div style={{ padding: "2rem", textAlign: "center" }}>
+    Interactive demos mount here.
+  </div>
+</Demo>
+
+<CTACard href="https://mdxjs.com" meta="mdxjs.com">
+  Read more about MDX
+</CTACard>
+
+[^1]: Footnotes render GitHub-style at the bottom of the article.
