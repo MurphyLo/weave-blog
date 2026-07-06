@@ -45,3 +45,6 @@ next-env.d.ts
 /public/sitemap.xml
 /public/robots.txt
 /src/lib/post-index.json
+
+# wrangler local state
+.wrangler/

@@ -221,7 +221,7 @@ pnpm db:migrate:remote  # D1 迁移（远程）
 - 主页/文章页 200，文章 HTML 直出（view-source 可见全部 prose + 顺序 `data-block` + shiki 着色 span，无 prism chunk）。
 - `document.querySelectorAll('[data-block] [data-block]').length === 0`。
 - view/like 对远程 D1 读写成功且持久。
-- feed.xml / sitemap.xml / robots.txt 均 200（注意 workers.dev 部署传播有数秒延迟，刚部署完 404 先等几秒再判断）。
+- feed.xml / sitemap.xml / robots.txt 均 200（注意 Workers 部署传播有数秒延迟，刚部署完 404 先等几秒再判断）。
 - 首屏 First Load JS ~161KB（文章页，含 motion + NumberFlow + rough-notation 岛）。
 
 ## 8. 后续路线
