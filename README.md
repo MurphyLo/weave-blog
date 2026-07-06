@@ -4,6 +4,11 @@ Personal blog focused on interaction and animation experiments. Next.js 15
 App Router + MDX, styled after benji.org (ported from the `benji` replica
 and `agentation` projects), deployed on Cloudflare Workers with D1.
 
+Detailed docs (中文): [docs/architecture.md](docs/architecture.md) covers the
+full technical architecture and deployment pitfalls;
+[docs/selection-contract.md](docs/selection-contract.md) specifies the
+data-block/data-atomic interface for the future selection system.
+
 ## Commands
 
 ```bash
