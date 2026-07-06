@@ -1,6 +1,7 @@
 import type { MDXComponents } from "mdx/types";
 import type { ComponentPropsWithoutRef } from "react";
 
+import { Chat } from "./Chat";
 import { CodeFigure } from "@/components/article/CodeFigure";
 import { CTACard } from "@/components/article/CTACard";
 import { Notation } from "@/components/article/Notation";
@@ -52,6 +53,7 @@ export const mdxComponents: MDXComponents = {
   Demo,
   Notation,
   SectionHeading,
+  Chat,
   CTACard,
   LikeButton,
   Poll,

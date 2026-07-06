@@ -66,6 +66,15 @@ route handler into D1, and the results below come back from the database.
   <Poll id="next-block" />
 </Demo>
 
+Islands aren't limited to request/response either. The chat room below
+holds a WebSocket to a Cloudflare Durable Object — messages are pushed to
+everyone in the room the moment they're sent, and the last hundred survive
+in the object's own SQLite storage.
+
+<Demo caption="A live chat room — one Durable Object holds the whole room.">
+  <Chat />
+</Demo>
+
 <CTACard href="https://mdxjs.com" meta="mdxjs.com">
   Read more about MDX
 </CTACard>

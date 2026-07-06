@@ -57,6 +57,9 @@ client.
 - `<Poll id="..." />` — D1-backed one-vote poll; polls are defined in
   `src/lib/polls.ts` (single source for both the component and worker-side
   vote validation)
+- `<Chat />` — live chat room over a WebSocket to the standalone
+  `weave-chat` worker (Durable Object + hibernation API; single fixed room,
+  last 100 messages persisted in the DO's SQLite storage)
 
 ## Interactive components + backend
 
@@ -79,6 +82,28 @@ Adding a new interactive component for use in post bodies:
    the name to `ATOMIC_COMPONENTS` in `rehype-data-block.ts`).
 
 `<Poll>` is the reference implementation of this recipe.
+
+## Realtime chat (decoupled worker)
+
+`<Chat>` deliberately does NOT go through the blog worker: Next route
+handlers can't return WebSocket 101 upgrades, and demo components should
+stay decoupled from the core. The backend is a standalone worker in
+`chat-worker/` (own wrangler config, own deploy, Durable Object `ChatRoom`
+with the WebSocket Hibernation API). The wire contract lives in
+`chat-worker/src/protocol.ts` and is imported by both the DO and the client
+component. The blog's build/deploy pipeline is untouched (`chat-worker/` is
+excluded from the blog tsconfig); removing the chat means deleting
+`chat-worker/`, `Chat.tsx`, its CSS block and the scope registration.
+
+```bash
+npx wrangler dev --config chat-worker/wrangler.jsonc --port 8788   # local
+npx wrangler deploy --config chat-worker/wrangler.jsonc            # deploy
+```
+
+In `next dev` the component connects to `http://localhost:8788` (override
+with `NEXT_PUBLIC_CHAT_ORIGIN`); in production it connects to
+`https://weave-chat.opportunities.workers.dev`, which only accepts the
+origins listed in `chat-worker/wrangler.jsonc` `vars.ALLOWED_ORIGINS`.
 
 ## Selection-system contract (data-block / data-atomic)
 
