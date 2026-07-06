@@ -8,6 +8,7 @@ import { SectionHeading } from "@/components/article/SectionHeading";
 import { Demo } from "./Demo";
 import { Figure } from "./Figure";
 import { LikeButton } from "./LikeButton";
+import { Poll } from "./Poll";
 import { Video } from "./Video";
 import { ViewCounter } from "./ViewCounter";
 
@@ -53,5 +54,6 @@ export const mdxComponents: MDXComponents = {
   SectionHeading,
   CTACard,
   LikeButton,
+  Poll,
   ViewCounter,
 };

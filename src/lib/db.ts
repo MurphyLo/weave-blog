@@ -45,3 +45,27 @@ export async function incrementLike(slug: string): Promise<PostStats> {
     .first<PostStats>();
   return row ?? { views: 0, likes: 1 };
 }
+
+export type PollVotes = Record<string, number>;
+
+export async function getPollVotes(pollId: string): Promise<PollVotes> {
+  const { results } = await (await db())
+    .prepare("SELECT option_id, votes FROM poll_votes WHERE poll_id = ?")
+    .bind(pollId)
+    .all<{ option_id: string; votes: number }>();
+  return Object.fromEntries(results.map((r) => [r.option_id, r.votes]));
+}
+
+export async function incrementPollVote(
+  pollId: string,
+  optionId: string,
+): Promise<PollVotes> {
+  await (await db())
+    .prepare(
+      `INSERT INTO poll_votes (poll_id, option_id, votes) VALUES (?, ?, 1)
+       ON CONFLICT(poll_id, option_id) DO UPDATE SET votes = votes + 1`,
+    )
+    .bind(pollId, optionId)
+    .run();
+  return getPollVotes(pollId);
+}

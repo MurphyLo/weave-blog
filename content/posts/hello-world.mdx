@@ -58,10 +58,12 @@ $$
   into view — one of the ported benji components.
 </Notation>
 
-<Demo caption="A live interactive island inside static content.">
-  <div style={{ padding: "2rem", textAlign: "center" }}>
-    Interactive demos mount here.
-  </div>
+Interactive islands can follow any paragraph. This poll is a client
+component hydrated inside the static article: your vote goes through a
+route handler into D1, and the results below come back from the database.
+
+<Demo caption="A D1-backed poll — vote, then reload to see it persist.">
+  <Poll id="next-block" />
 </Demo>
 
 <CTACard href="https://mdxjs.com" meta="mdxjs.com">
