@@ -33,7 +33,7 @@ const STAGE_TARGETS: Record<Stage, { dx: number; dy: number; radius: number }> =
   drag: { dx: 0, dy: 0, radius: 2 },
   deflate: { dx: 0, dy: 0, radius: 2 },
   inhale: { dx: -0.5, dy: -0.5, radius: 3 },
-  exhale: { dx: 3, dy: 2, radius: 8 },
+  exhale: { dx: 3, dy: 2, radius: 5 },
 };
 
 interface AtomicHighlight {
@@ -146,8 +146,8 @@ export function SelectionOverlay({
     ? "oklch(0.70 0.12 var(--selection-h) / 0.35)"
     : "oklch(0.72 0.08 var(--selection-h) / 0.25)";
   const shadow = settled
-    ? "drop-shadow(0px 1px 2px oklch(0.55 0.12 var(--selection-h) / 0.10)) drop-shadow(0px 8px 12px oklch(0.45 0.15 var(--selection-h) / 0.20))"
-    : "drop-shadow(0px 0px 0px oklch(0.55 0.12 var(--selection-h) / 0)) drop-shadow(0px 0px 0px oklch(0.45 0.15 var(--selection-h) / 0))";
+    ? "drop-shadow(0px 1px 2px oklch(0.55 0.12 var(--selection-h) / 0.10))"
+    : "drop-shadow(0px 0px 0px oklch(0.55 0.12 var(--selection-h) / 0))";
   const visualTransition =
     stage === "drag"
       ? { duration: 0 }
