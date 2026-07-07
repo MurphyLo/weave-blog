@@ -48,3 +48,7 @@ next-env.d.ts
 
 # wrangler local state
 .wrangler/
+chat-worker/.wrangler/
+
+# OpenNext build output (rebuilt by pnpm preview / pnpm deploy)
+.open-next/
