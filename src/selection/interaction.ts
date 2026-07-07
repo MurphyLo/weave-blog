@@ -13,6 +13,7 @@ import {
   isAtomic,
   type DragUnit,
   type LayoutSnapshot,
+  type Line,
   type Phase,
   type SelectionRange,
 } from "./types";
@@ -97,6 +98,16 @@ export function wordRangeAt(
     }
   }
   return { start: gi, end: gi + 1 };
+}
+
+/** Entry whose word/block unit a cursor position belongs to. A cursor at
+ * its line's end (right of a text line's last grapheme, or below an
+ * atomic's center) sits directly before the NEXT block's first entry in
+ * flatChars, so unit lookups there must clamp to the line's own last
+ * entry — otherwise a double/triple click or a unit drag past the line's
+ * edge selects content the pointer never reached (the block after it). */
+function unitEntryFor(g: number, line: Line | null): number {
+  return line && g === line.endG && g > line.startG ? g - 1 : g;
 }
 
 export function blockRangeAt(snapshot: LayoutSnapshot, g: number): SelectionRange {
@@ -185,6 +196,8 @@ export function useSelection(
   const scrollRafRef = useRef(0);
   const detachDragRef = useRef<(() => void) | null>(null);
   const blockTextCacheRef = useRef<BlockTextCache>(new Map());
+  /** Line resolved for the previous drag sample — hysteresis input. */
+  const dragLineRef = useRef<Line | null>(null);
 
   const isMac = useMemo(
     () => (typeof navigator !== "undefined" ? /mac/i.test(navigator.platform) : true),
@@ -195,6 +208,7 @@ export function useSelection(
   // shrunk one must not leave a dangling range.
   useEffect(() => {
     blockTextCacheRef.current = new Map();
+    dragLineRef.current = null; // stale Line objects reference the old snapshot
     if (!snapshot) return;
     const total = snapshot.flatChars.length;
     const r = rangeRef.current;
@@ -227,7 +241,9 @@ export function useSelection(
       const m = measureRef.current;
       if (!s || !m) return;
       const pt = m.toLocal(clientX, clientY);
-      const g = m.gAtPoint(pt.x, pt.y);
+      const line = m.lineAt(pt.y, dragLineRef.current);
+      dragLineRef.current = line;
+      const g = m.gAtPoint(pt.x, pt.y, line);
       focusRef.current = g;
       const unit = dragUnitRef.current;
       if (unit === "char" || !dragBaseRef.current) {
@@ -235,7 +251,8 @@ export function useSelection(
         return;
       }
       const cache = blockTextCacheRef.current;
-      const u = unit === "word" ? wordRangeAt(s, cache, g) : blockRangeAt(s, g);
+      const unitG = unitEntryFor(g, line);
+      const u = unit === "word" ? wordRangeAt(s, cache, unitG) : blockRangeAt(s, unitG);
       const base = dragBaseRef.current;
       const merged = {
         start: Math.min(base.start, u.start),
@@ -295,7 +312,10 @@ export function useSelection(
       goalXRef.current = null;
 
       const pt = m.toLocal(e.clientX, e.clientY);
+      const line = m.lineAt(pt.y);
+      dragLineRef.current = line;
       const g = m.gAtPoint(pt.x, pt.y);
+      const unitG = unitEntryFor(g, line);
       lastClientRef.current = downClientRef.current = { x: e.clientX, y: e.clientY };
 
       const prev = clickRef.current;
@@ -311,13 +331,13 @@ export function useSelection(
         apply(anchorRef.current, g);
         setPhase("dragging");
       } else if (count === 2) {
-        const r = wordRangeAt(s, blockTextCacheRef.current, g);
+        const r = wordRangeAt(s, blockTextCacheRef.current, unitG);
         dragUnitRef.current = "word";
         dragBaseRef.current = r;
         apply(r.start, r.end);
         setPhase("dragging");
       } else if (count === 3) {
-        const r = blockRangeAt(s, g);
+        const r = blockRangeAt(s, unitG);
         dragUnitRef.current = "block";
         dragBaseRef.current = r;
         apply(r.start, r.end);

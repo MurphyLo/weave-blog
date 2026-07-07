@@ -9,12 +9,21 @@
 import { entryClientRect } from "./layout";
 import type { LayoutSnapshot, Line, Pt } from "./types";
 
+/** Drag hysteresis (px): in a gap wider than ordinary line spacing, the
+ * previously resolved line keeps the point until the pointer comes within
+ * this distance of the adjacent line. Without it the focus flips at the
+ * gap's midpoint, which reads as "grabbing the heading before the mouse
+ * reaches it" across the large block gaps of the article layout. */
+const STICKY = 8;
+
 export interface Measure {
   toLocal(clientX: number, clientY: number): Pt;
-  /** Nearest visual line to a local y. */
-  lineAt(yLocal: number): Line | null;
+  /** Nearest visual line to a local y. `sticky` — the line resolved for
+   * the previous drag sample — adds hysteresis across wide gaps; narrow
+   * gaps (< 2×STICKY, i.e. normal line spacing) stay pure nearest-line. */
+  lineAt(yLocal: number, sticky?: Line | null): Line | null;
   /** Cursor position for a local point (mid-grapheme snapping). */
-  gAtPoint(xLocal: number, yLocal: number): number;
+  gAtPoint(xLocal: number, yLocal: number, sticky?: Line | null): number;
   /** Cursor position for a local x on a known line (goal-column moves). */
   gAtLineX(line: Line, xLocal: number): number;
   /** Local x of cursor position g on the given line. */
@@ -35,20 +44,32 @@ export function createMeasure(snapshot: LayoutSnapshot): Measure {
     return { x: clientX - r.left, y: clientY - r.top };
   }
 
-  function lineAt(yLocal: number): Line | null {
+  function distTo(line: Line, yLocal: number): number {
+    const top = line.rect.y;
+    const bottom = line.rect.y + line.rect.h;
+    return yLocal < top ? top - yLocal : yLocal > bottom ? yLocal - bottom : 0;
+  }
+
+  function lineAt(yLocal: number, sticky?: Line | null): Line | null {
     let best: Line | null = null;
     let bestD = Infinity;
     for (const line of lines) {
-      const top = line.rect.y;
-      const bottom = line.rect.y + line.rect.h;
-      const d = yLocal < top ? top - yLocal : yLocal > bottom ? yLocal - bottom : 0;
+      const d = distTo(line, yLocal);
       if (d < bestD) {
         bestD = d;
         best = line;
         if (d === 0) break;
       }
     }
-    return best;
+    if (!best || !sticky || sticky.idx === best.idx) return best;
+    // Hysteresis only applies between two adjacent lines while the pointer
+    // is still farther than STICKY from the nearer one. A pointer that
+    // overshot past `best` (or jumped blocks) always resolves nearest.
+    if (bestD <= STICKY || Math.abs(sticky.idx - best.idx) !== 1) return best;
+    const [above, below] = sticky.idx < best.idx ? [sticky, best] : [best, sticky];
+    const inGap = yLocal >= above.rect.y + above.rect.h && yLocal <= below.rect.y;
+    if (!inGap) return best;
+    return bestD + distTo(sticky, yLocal) <= 2 * STICKY ? best : sticky;
   }
 
   function midsFor(line: Line): number[] {
@@ -81,8 +102,8 @@ export function createMeasure(snapshot: LayoutSnapshot): Measure {
     return line.startG + lo;
   }
 
-  function gAtPoint(xLocal: number, yLocal: number): number {
-    const line = lineAt(yLocal);
+  function gAtPoint(xLocal: number, yLocal: number, sticky?: Line | null): number {
+    const line = lineAt(yLocal, sticky);
     if (!line) return 0;
     if (line.kind === "atomic") {
       // Vertical drags dominate block units: above center → before it,
