@@ -209,7 +209,7 @@ export const dynamicParams = false;    // 未知 slug 一律 404，不回退 SSR
 - **数据模型**：半开区间光标位 `[start, end)` 覆盖全文 grapheme 扁平索引 `flatChars`；`data-atomic` 单元（行内公式为 inline 原子、Figure/Video/Demo/CTACard/表格/display 公式为 block 原子）各占一个条目。DOM 走查与行模型见 selection-contract.md §1。
 - **形状连续性（核心设计）**：选区按 block 原子切分为文本段，每段做纵向 band 分解——行带与间隙带无缝铺满整段 y 跨度，相邻带 x 区间构造性重叠（交集收腰、过窄回退并集 S 弯）→ 每段恒为单一简单多边形（`fill-rule:nonzero`），跨代码块/列表/标题的 markdown 间隙不产生任何断裂或跳跃。纯函数几何在 `geometry.ts`，有独立不变量测试（tiling/重叠/顺时针/无自交）。
 - **左缘对齐（吞列规则）**：被完整选中的行、以及选区自上一行延续进入的行，左缘统一取文章列左缘（`LayoutSnapshot.columnLeft`）而非文本盒左缘——bullet、引用左边线、pre padding、嵌套缩进全部被罩入色块，跨块左缘为一条直线。选区起点所在行保持 caret 精确位置（信息性台阶）；居中/右对齐块经 `BlockInfo.flushLeft=false` 豁免。
-- **组件选区**：block 原子仅由拖选扫过/键盘跨越纳入，选中时渲染贴合组件圆角的描边+蒙层高亮环；原子内部（Chat 输入框、Poll 按钮）保持原生交互与原生选区。
+- **组件选区**：block 原子仅由拖选扫过/键盘跨越纳入，渲染描边+蒙层高亮环，且与文本层共用同一阶段机呼吸（拖选中贴盒方角，松开外扩并圆角化为组件圆角+3）；原子内部（Chat 输入框、Poll 按钮）保持原生交互与原生选区。
 - **交互完备性**：多击粒度拖选、Shift+点击、全键盘导航（Chromium 行为表规范，goal column）、Cmd/Ctrl+A、Escape、自动滚动、复制（块间 `\n` + 原子源码形式）、拖选后抑制链接 click。
 - **接入方式**：`SelectionRoot`（client）渲染 `<article class="article">` 本身、children 直通（prose 保持 SSG 直出），overlay 为绝对定位兄弟节点。仅精细指针启用；触屏保留原生选区。快照就绪后 article 带 `data-selection-ready`。
 

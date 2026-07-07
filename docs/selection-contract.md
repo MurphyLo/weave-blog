@@ -68,7 +68,7 @@
 - **交互**：拖选（含双击=词、三击=块的粒度拖选）、Shift+点击扩展、全键盘导航（字符/词/视觉行/块/文档/页 × extend，macOS/Win 修饰键映射，goal column）、Cmd/Ctrl+A、Escape、拖选近视口边缘自动滚动。规范依据：`../base/docs/selection-interaction-reference.md` 的 Chromium 行为表。
 - **形状连续性**：选区按 block 原子切分为文本段；每段做纵向 band 分解（行带 + 间隙带无缝铺满），相邻带 x 必然重叠（交集收腰，过窄回退为并集 S 弯）→ 单一简单多边形，`fill-rule:nonzero`。跨代码块/列表/标题的 markdown 间隙全部由间隙带覆盖，不断裂。
 - **左缘吞列**：完整选中的行与选区自上方延续进入的行，左缘取文章列左缘（吞并 bullet/引用边线/pre padding/嵌套缩进），跨块左缘对齐为一条直线；选区起点所在行保持 caret 精确。居中/右对齐块豁免（按块 computed `text-align` 判定，存于 `BlockInfo.flushLeft`）。
-- **组件选区**：block 原子仅通过拖选扫过/键盘跨越纳入（单击不选中）；选中时渲染贴合组件圆角的描边+浅蒙层高亮环。原子内部（Chat 输入框、Poll 按钮）交互与原生选区完全不受影响（`user-select: auto`、pointerdown 放行）。
+- **组件选区**：block 原子仅通过拖选扫过/键盘跨越纳入（单击不选中）；高亮环与文本层共用同一阶段机呼吸——拖选中贴紧组件盒、方角（radius 2），松开沿 inhale/exhale 曲线外扩 3px 并鼓成组件自身圆角+3。原子内部（Chat 输入框、Poll 按钮）交互与原生选区完全不受影响（`user-select: auto`、pointerdown 放行）。
 - **复制**：块间 `\n`；非 pre 块内的软换行输出为空格；原子输出源码形式（§2.2）。
 - **启用范围**：仅精细指针（`matchMedia("(pointer: fine)")` + CSS `@media (pointer: fine)` 内 `user-select: none`）；触屏保留浏览器原生选区。
 - **接入点**：`ArticleLayout` 用 `SelectionRoot`（client）渲染 `<article class="article">` 本身，children 直通保持 prose 服务端渲染；overlay 是 article 内绝对定位的兄弟节点，不会命中 `.article > *` 系列选择器。`.article` 因此带 `position: relative`。

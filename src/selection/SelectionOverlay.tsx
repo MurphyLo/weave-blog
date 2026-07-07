@@ -42,6 +42,46 @@ interface AtomicHighlight {
   radius: number;
 }
 
+/** Ring geometry per stage, mirroring the text bands' breathing: hugging
+ * the component box with sharp corners while dragging, inflating to a
+ * loose ring at the component's own rounding (+3px) on release. */
+function ringGeometry(stage: Stage, a: AtomicHighlight) {
+  const outset = stage === "exhale" ? 3 : stage === "inhale" ? -0.5 : 0;
+  const radius = stage === "exhale" ? a.radius + 3 : stage === "inhale" ? 3 : 2;
+  return {
+    left: a.rect.x - outset,
+    top: a.rect.y - outset,
+    width: a.rect.w + outset * 2,
+    height: a.rect.h + outset * 2,
+    borderRadius: radius,
+  };
+}
+
+function AtomicRing({ stage, a }: { stage: Stage; a: AtomicHighlight }) {
+  const fade = { duration: 0.2, ease: [...VISUAL_EASE] as [number, number, number, number] };
+  const geometry =
+    stage === "drag"
+      ? { duration: 0 }
+      : {
+          duration: (stage === "inhale" ? INHALE_MS : EXHALE_MS) / 1000,
+          ease: [...(stage === "inhale" ? INHALE_EASE : EXHALE_EASE)] as [
+            number,
+            number,
+            number,
+            number,
+          ],
+        };
+  return (
+    <motion.div
+      className="selection-atomic"
+      initial={{ opacity: 0, scale: 0.99, ...ringGeometry(stage, a) }}
+      animate={{ opacity: 1, scale: 1, ...ringGeometry(stage, a) }}
+      exit={{ opacity: 0, scale: 0.99 }}
+      transition={{ ...geometry, opacity: fade, scale: fade }}
+    />
+  );
+}
+
 function atomicRadius(el: HTMLElement): number {
   const own = parseFloat(getComputedStyle(el).borderRadius);
   if (own > 0) return own;
@@ -171,24 +211,7 @@ export function SelectionOverlay({
       )}
       <AnimatePresence>
         {atomics.map((a) => (
-          <motion.div
-            key={a.key}
-            className="selection-atomic"
-            initial={{ opacity: 0, scale: 0.99 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.99 }}
-            transition={{
-              duration: 0.2,
-              ease: [...VISUAL_EASE] as [number, number, number, number],
-            }}
-            style={{
-              left: a.rect.x - 3,
-              top: a.rect.y - 3,
-              width: a.rect.w + 6,
-              height: a.rect.h + 6,
-              borderRadius: a.radius + 3,
-            }}
-          />
+          <AtomicRing key={a.key} stage={stage} a={a} />
         ))}
       </AnimatePresence>
     </div>
