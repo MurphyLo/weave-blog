@@ -59,6 +59,14 @@ export interface BlockInfo {
   kind: "text" | "atomic";
   /** Whitespace is significant (pre): newlines copy as-is. */
   pre: boolean;
+  /**
+   * Fully-selected lines of this block extend their left edge to the
+   * article column edge, swallowing structural decorations (list markers,
+   * blockquote borders, pre padding) so cross-block left edges align.
+   * False for center/right-aligned blocks, where a flush edge would leave
+   * a large empty-tinted area.
+   */
+  flushLeft: boolean;
 }
 
 /** One visual line (or one block-level atomic pseudo-line). */
@@ -78,6 +86,8 @@ export interface LayoutSnapshot {
   flatChars: CharEntry[];
   blocks: BlockInfo[];
   lines: Line[];
+  /** Article-local x of the column's content-box left edge (flush target). */
+  columnLeft: number;
   version: number;
 }
 

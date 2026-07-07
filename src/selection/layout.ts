@@ -107,13 +107,14 @@ function collect(root: HTMLElement, flatChars: CharEntry[], blocks: BlockInfo[])
         const idx = blocks.length;
         const start = flatChars.length;
         flatChars.push({ atomic: true, g: start, blockIdx: idx, el, kind, rawText, inline: false });
-        blocks.push({ idx, el, start, end: start + 1, kind: "atomic", pre: false });
+        blocks.push({ idx, el, start, end: start + 1, kind: "atomic", pre: false, flushLeft: false });
       }
       return;
     }
 
     if (blockIdx === null && el.hasAttribute("data-block")) {
       const idx = blocks.length;
+      const align = getComputedStyle(el).textAlign;
       const info: BlockInfo = {
         idx,
         el,
@@ -121,6 +122,7 @@ function collect(root: HTMLElement, flatChars: CharEntry[], blocks: BlockInfo[])
         end: flatChars.length,
         kind: "text",
         pre: el.tagName === "PRE",
+        flushLeft: align !== "center" && align !== "right" && align !== "end",
       };
       blocks.push(info);
       for (const child of Array.from(el.childNodes)) visit(child, idx);
@@ -253,13 +255,16 @@ export function buildSnapshot(root: HTMLElement, version: number): LayoutSnapsho
   collect(root, flatChars, blocks);
 
   const rootRect = root.getBoundingClientRect();
+  const rootStyle = getComputedStyle(root);
+  const columnLeft =
+    parseFloat(rootStyle.borderLeftWidth) + parseFloat(rootStyle.paddingLeft) || 0;
   const lines: Line[] = [];
   for (const block of blocks) {
     for (const line of linesForBlock(block, flatChars, rootRect)) {
       lines.push({ ...line, idx: lines.length });
     }
   }
-  return { root, flatChars, blocks, lines, version };
+  return { root, flatChars, blocks, lines, columnLeft, version };
 }
 
 /** Plain-text form of a range: blocks separated by \n, atomics contribute

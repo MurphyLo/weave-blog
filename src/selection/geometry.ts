@@ -14,6 +14,13 @@
 // changes) — the union is used instead, which rounds into a ribbon-like
 // S-bend but keeps the region connected.
 //
+// Left-edge alignment: rows that are fully covered, or that the selection
+// enters from a previous line, take the article column's left edge instead
+// of the text's, so list markers, blockquote borders and pre padding sit
+// inside the shape and the left edge is one straight line across block
+// kinds (center/right-aligned blocks opt out via BlockInfo.flushLeft).
+// Rows beginning at the range start stay text/caret-precise.
+//
 // Everything in this module is pure (no DOM) except rowsForRange, which
 // reads caret x-positions through the Measure.
 
@@ -59,8 +66,21 @@ export function rowsForRange(
     const selStart = Math.max(range.start, line.startG);
     const selEnd = Math.min(range.end, line.endG);
     if (selEnd <= selStart) continue;
-    const left =
-      selStart <= line.startG ? line.rect.x : measure.caretX(selStart, line);
+    // Fully-covered rows — and rows the selection enters from a previous
+    // line — swallow the column-left gutter (list markers, blockquote
+    // borders, pre padding, nesting indents), so the selection's left edge
+    // stays flush across block kinds. Rows that begin at the range start
+    // keep the precise text/caret x even at a line start, so a word
+    // selected at the head of a list item still hugs the word.
+    const flush =
+      selStart <= line.startG &&
+      snapshot.blocks[line.blockIdx].flushLeft &&
+      (selEnd >= line.endG || range.start < line.startG);
+    const left = flush
+      ? Math.min(snapshot.columnLeft, line.rect.x)
+      : selStart <= line.startG
+        ? line.rect.x
+        : measure.caretX(selStart, line);
     const right =
       selEnd >= line.endG ? line.rect.x + line.rect.w : measure.caretX(selEnd, line);
     current.push({

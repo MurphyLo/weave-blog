@@ -112,8 +112,11 @@ Article pages ship a fully custom text selection: drag draws sharp
 rectangles that morph into a rounded highlight on release, the shape stays
 **one continuous polygon** across code blocks / lists / headings (band
 decomposition — line bands plus gap bands that always overlap, so the
-outline can't split or self-intersect), and components (figures, demos,
-formulas, tables) are selected as whole units with a rounded ring. Full
+outline can't split or self-intersect), fully-covered lines extend to the
+column's left edge (bullets, blockquote borders and pre padding sit inside
+the highlight, keeping the left edge flush across block kinds), and
+components (figures, demos, formulas, tables) are selected as whole units
+with a rounded ring. Full
 keyboard navigation (word/line/block/document granularities, goal column),
 Cmd/Ctrl+A, and copy that emits source form (`$latex$`, `![alt](src)`).
 Fine-pointer devices only; touch keeps native selection.
