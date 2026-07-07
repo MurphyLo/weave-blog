@@ -385,15 +385,20 @@
   color: #111;
 }
 
-/* Footnotes */
+/* Footnotes — tail list styled after userinterface.wiki: full-width
+   hairline in place of the (sr-only) heading, hanging counters on a
+   0.75rem indent, 12px/150% muted text with flex-gap rhythm, and the
+   whole-item invisible backref hotspot (content links stack above it).
+   In-text refs (sup a.basic-link below) keep the original style. */
 .footnotes {
+  position: relative;
   padding: 2.5rem 0 0;
 }
 
 .footnotes::before {
   content: "";
   display: block;
-  width: 3.125rem;
+  width: 100%;
   height: 1px;
   background: #ededed;
 }
@@ -410,33 +415,35 @@
   border-width: 0;
 }
 
-.footnotes ol {
+/* .article prefix: outranks the generic `.article ol` list rules below. */
+.article .footnotes ol {
   list-style: none;
-  display: block;
   position: relative;
-  padding: 0 0 0 0.25rem;
-  padding-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  counter-reset: list 0;
+  padding: 1.5rem 0 0 0.75rem;
 }
 
 .footnotes ol li {
   position: relative;
+  margin-left: 0.75rem;
   counter-increment: list;
-  color: rgba(0, 0, 0, 0.4);
+  color: rgba(0, 0, 0, 0.45);
   font-size: 0.75rem;
-  font-weight: 460;
-  letter-spacing: 0.00063rem;
-  line-height: 1.2;
-  padding: 0 0 0.5625rem 0.25rem;
+  font-weight: 450;
+  line-height: 1.5;
+  overflow-wrap: break-word;
 }
 
 .footnotes ol li::before {
   position: absolute;
-  right: 100%;
-  top: 0;
+  top: -0.125rem;
+  left: -0.75rem;
   content: counter(list);
-  font-size: 0.45rem;
-  font-weight: 460;
-  letter-spacing: 0.00063rem;
+  font-size: 0.625rem;
+  font-weight: 550;
 }
 
 .footnotes ol li p {
@@ -449,10 +456,17 @@
 .data-footnote-backref {
   position: absolute;
   inset: 0;
-  bottom: 0.5em;
+  bottom: 0.5rem;
+  z-index: 1;
   overflow: hidden;
   display: inline-block;
   text-indent: -9999px;
+}
+
+/* Content links inside a footnote sit above the backref hotspot
+   (.basic-link is already position: relative). */
+.footnotes ol li a:not(.data-footnote-backref) {
+  z-index: 2;
 }
 
 /* Demo container */
