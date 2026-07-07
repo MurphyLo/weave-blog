@@ -64,7 +64,8 @@ export default async function PostPage({
     <PostProvider slug={slug}>
       <ArticleLayout title={post.meta.title} headings={headings}>
         <header>
-          <h1>{post.meta.title}</h1>
+          {/* data-block: the title participates in the selection flow. */}
+          <h1 data-block="">{post.meta.title}</h1>
           <div className="post-meta-row">
             <time dateTime={post.meta.date}>
               {formatDisplayDate(post.meta.date)}

@@ -67,6 +67,9 @@ export default function rehypeDataBlock() {
       }
       if (node.type !== "element") return;
       const el = node as Element;
+      // Atomic units (katex, tables, …) are single selectable leaves; no
+      // data-block may appear inside them.
+      if (el.properties?.["dataAtomic"] != null) return SKIP;
       if (!CANDIDATES.has(el.tagName)) return;
       // e.g. blockquote > p, loose li > p: mark the inner block instead.
       if (hasCandidateDescendant(el)) return;

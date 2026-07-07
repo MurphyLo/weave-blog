@@ -7,7 +7,7 @@ and `agentation` projects), deployed on Cloudflare Workers with D1.
 Detailed docs (中文): [docs/architecture.md](docs/architecture.md) covers the
 full technical architecture and deployment pitfalls;
 [docs/selection-contract.md](docs/selection-contract.md) specifies the
-data-block/data-atomic interface for the future selection system.
+data-block/data-atomic contract and the custom selection engine built on it.
 
 ## Commands
 
@@ -106,18 +106,29 @@ with `NEXT_PUBLIC_CHAT_ORIGIN`); in production it connects to
 `https://chat.xinghan.me`, which only accepts the
 origins listed in `chat-worker/wrangler.jsonc` `vars.ALLOWED_ORIGINS`.
 
-## Selection-system contract (data-block / data-atomic)
+## Custom selection engine (src/selection/)
 
-The custom text-selection system from the `base` project attaches to
-rendered article DOM later. The MDX pipeline reserves its interface:
+Article pages ship a fully custom text selection: drag draws sharp
+rectangles that morph into a rounded highlight on release, the shape stays
+**one continuous polygon** across code blocks / lists / headings (band
+decomposition — line bands plus gap bands that always overlap, so the
+outline can't split or self-intersect), and components (figures, demos,
+formulas, tables) are selected as whole units with a rounded ring. Full
+keyboard navigation (word/line/block/document granularities, goal column),
+Cmd/Ctrl+A, and copy that emits source form (`$latex$`, `![alt](src)`).
+Fine-pointer devices only; touch keeps native selection.
+
+The DOM contract it consumes:
 
 - `src/lib/rehype-data-block.ts` marks every **leaf text block** (p,
   headings, li, pre, blockquote, figcaption) with sequential `data-block`
   attributes. **Blocks never nest** — the selection layout flat-walks
   `[data-block]` in document order.
 - Media and interactive components render with `data-atomic` on their
-  outermost element (Figure/Video/Demo/CTACard); the selection system
-  treats those subtrees as single selectable units.
+  outermost element (Figure/Video/Demo/CTACard); `src/lib/rehype-atomic.ts`
+  additionally atomizes KaTeX (inline + display) and tables and attaches
+  `data-raw` (what a copy yields). Atomic subtrees are single selectable
+  units; their internals keep native interaction.
 - UI chrome inside a block (e.g. the copy button) must carry
   `aria-hidden="true"` — the layout walker skips aria-hidden subtrees.
 

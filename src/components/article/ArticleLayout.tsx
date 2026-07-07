@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { TocHeading } from "@/lib/remark-toc-headings";
+import { SelectionRoot } from "@/selection/SelectionRoot";
 import { BackButton } from "./BackButton";
 import { HashHighlight } from "./HashHighlight";
 import { TableOfContents } from "./TableOfContents";
@@ -23,7 +24,7 @@ export function ArticleLayout({
           <TableOfContents title={title} headings={headings} />
         </aside>
         <main>
-          <article className="article">{children}</article>
+          <SelectionRoot>{children}</SelectionRoot>
         </main>
       </div>
     </div>

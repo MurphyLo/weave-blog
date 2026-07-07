@@ -7,6 +7,7 @@ import rehypeSlug from "rehype-slug";
 import type { PluggableList } from "unified";
 
 import { mdxComponents } from "@/components/mdx/mdx-components";
+import rehypeAtomic from "./rehype-atomic";
 import rehypeDataBlock from "./rehype-data-block";
 import rehypeUnwrapImages from "./rehype-unwrap-images";
 import remarkTocHeadings, { type TocHeading } from "./remark-toc-headings";
@@ -28,9 +29,10 @@ export async function renderPost(
     [rehypePrettyCode, { theme: "github-light", keepBackground: false }],
   ];
   if (math) rehypePlugins.push(rehypeKatex);
-  // Must run last: it needs the final block structure (pretty-code figures,
-  // expanded katex markup) to assign non-nesting data-block indices.
-  rehypePlugins.push(rehypeDataBlock);
+  // Atomic marking needs the expanded katex markup; data-block must run
+  // last so it sees the final block structure (pretty-code figures, atomic
+  // roots) when assigning non-nesting indices.
+  rehypePlugins.push(rehypeAtomic, rehypeDataBlock);
 
   const { content, error } = await evaluate({
     source,

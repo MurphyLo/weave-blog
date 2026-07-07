@@ -951,3 +951,49 @@ sup a.basic-link {
 .code-figure:has([data-rehype-pretty-code-title]) .copy-button {
   top: calc(14px + 1.375rem);
 }
+
+/* ---------------------------------------------------------------------------
+   Custom selection engine (src/selection/, docs/selection-contract.md).
+
+   The overlay is an absolutely-positioned sibling of the prose inside
+   .article — it never matches the `.article > *` prose selectors. Native
+   selection is suppressed only for fine pointers (the engine's own gate);
+   touch devices keep browser-native behavior. Component internals
+   ([data-atomic]: chat inputs, poll buttons, …) stay native everywhere. */
+.article {
+  position: relative;
+}
+@media (pointer: fine) {
+  .article {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .article [data-atomic] {
+    user-select: auto;
+    -webkit-user-select: auto;
+  }
+}
+
+.selection-overlay {
+  --selection-h: 250;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+.selection-overlay svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Whole-unit highlight for selected block atomics (figures, demos, …). */
+.selection-atomic {
+  position: absolute;
+  background: oklch(0.92 0.05 var(--selection-h) / 0.4);
+  box-shadow: inset 0 0 0 1px oklch(0.72 0.08 var(--selection-h) / 0.3);
+}
