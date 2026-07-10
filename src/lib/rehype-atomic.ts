@@ -15,6 +15,12 @@ import { visit, SKIP } from "unist-util-visit";
  * selection yields for that unit. KaTeX's MathML half additionally gets
  * aria-hidden: without it the raw MathML text would leak into the flat
  * character index of the enclosing paragraph.
+ *
+ * GFM footnote backrefs (`a[data-footnote-backref]`, the "↩" link) get the
+ * same treatment: article.css turns them into invisible whole-item hotspots
+ * (text-indent -9999px), so their glyph must not enter the character index —
+ * it would hand the selection geometry an off-screen rect. tabindex=-1 keeps
+ * the aria-hidden element out of the tab order.
  */
 
 function classList(el: Element): string[] {
@@ -104,6 +110,12 @@ export default function rehypeAtomic() {
         node.properties["dataAtomic"] = "";
         node.properties["dataAtomicKind"] = "table";
         node.properties["dataRaw"] = tableToGfm(node);
+        return SKIP;
+      }
+
+      if (node.properties?.["dataFootnoteBackref"] != null) {
+        node.properties["ariaHidden"] = "true";
+        node.properties["tabIndex"] = -1;
         return SKIP;
       }
     });

@@ -38,6 +38,11 @@ const CANDIDATES = new Set([
   "figcaption",
 ]);
 
+function classListOf(el: Element): string[] {
+  const cn = el.properties?.className;
+  return Array.isArray(cn) ? cn.map(String) : typeof cn === "string" ? [cn] : [];
+}
+
 function hasCandidateDescendant(node: Element): boolean {
   let found = false;
   visit(node, "element", (child: Element) => {
@@ -70,6 +75,10 @@ export default function rehypeDataBlock() {
       // Atomic units (katex, tables, …) are single selectable leaves; no
       // data-block may appear inside them.
       if (el.properties?.["dataAtomic"] != null) return SKIP;
+      // Screen-reader-only elements (GFM's `h2.sr-only` footnote label) are
+      // visually clipped: selectable invisible text with bogus geometry.
+      // Skip them entirely — but they stay in the accessibility tree.
+      if (classListOf(el).includes("sr-only")) return SKIP;
       if (!CANDIDATES.has(el.tagName)) return;
       // e.g. blockquote > p, loose li > p: mark the inner block instead.
       if (hasCandidateDescendant(el)) return;
