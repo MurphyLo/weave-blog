@@ -30,8 +30,10 @@ description: Build/launch/drive recipe for verifying weave-blog changes end-to-e
 
 - Wait for `article[data-selection-ready]` before any interaction.
 - Observables: `.selection-overlay svg path` (`d` attr non-empty = active
-  range), `.selection-atomic` (block-atomic rings), `.selection-caret`
-  (visible collapsed cursor; absent while a range exists).
+  range), `.selection-atomic` (block-atomic rings). There is deliberately NO
+  rendered caret (`.selection-caret` must never exist — the caret is an API
+  model only, see selection-contract.md §3); plain arrows without a range
+  must keep default page scrolling.
 - After any MDX pipeline change, assert the contract:
   `document.querySelectorAll('[data-block] [data-block]').length === 0`,
   footnote backrefs `aria-hidden` + `tabIndex === -1`, and no

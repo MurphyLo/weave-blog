@@ -41,7 +41,6 @@ export function SelectionRoot({ children }: { children: ReactNode }) {
         snapshot={snapshot}
         measure={sel.measure}
         range={sel.range}
-        caret={sel.caret}
         phase={sel.phase}
       />
     </article>

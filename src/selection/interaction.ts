@@ -2,8 +2,11 @@
 // word/block granularity), the keyboard command table, copy override, and
 // drag auto-scroll. Owns anchor/focus; the rendered `range` is always the
 // normalized min/max form, with `direction` carrying the anchor→focus
-// orientation and `caret` the visible collapsed cursor (a click places it,
-// plain arrow keys move it, Shift extends from it).
+// orientation and `caret` the collapsed-cursor model (click point /
+// collapse edge). The caret is deliberately NOT rendered — the reading
+// surface steers toward select-to-comment, not editor-style cursors — but
+// its position+affinity model is the insertion-point API future block
+// splitting (inline comments / rich inserts) will consume.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
@@ -173,7 +176,7 @@ export interface SelectionApi {
   range: SelectionRange | null;
   /** Anchor→focus orientation of `range`; null while collapsed. */
   direction: Direction | null;
-  /** Visible collapsed cursor; null while a range is active. */
+  /** Collapsed-cursor model (not rendered); null while a range is active. */
   caret: Caret | null;
   phase: Phase;
   measure: Measure | null;
@@ -491,8 +494,8 @@ export function useSelection(
     [isMac],
   );
 
-  // Keep the caret (or the extending focus) on screen after a keyboard
-  // move, mirroring the browser's scroll-to-caret.
+  // Keep the extending focus edge on screen after a keyboard move,
+  // mirroring the browser's scroll-to-caret.
   const revealCaret = useCallback((c: Caret) => {
     const s = snapRef.current;
     const m = measureRef.current;
@@ -540,28 +543,19 @@ export function useSelection(
       }
 
       if (!action.extend) {
-        // Plain move (Chromium semantics): with a range, char moves only
-        // collapse to the directional edge; coarser moves collapse then
-        // move from that edge. With a caret, move it. With neither, keep
-        // the browser's defaults (page scroll).
+        // Plain move: collapse an active range to its directional edge and
+        // re-arm the anchor there for later Shift-extends. The collapse
+        // point lands in the caret model (API only — no caret is rendered:
+        // this is a reading surface steering toward select-to-comment, not
+        // an editor). Without a range the keys keep the browser's default
+        // page scroll.
         const r = rangeRef.current;
-        const c = caretRef.current;
-        if (!r && !c) return;
+        if (!r) return;
         e.preventDefault();
         const backward = action.dir === "left" || action.dir === "up";
-        let next: Caret;
-        if (r) {
-          const edge = backward ? r.start : r.end;
-          next =
-            action.granularity === "char"
-              ? { g: edge, affinity: backward ? "downstream" : "upstream" }
-              : moveFocus(edge, action);
-        } else {
-          next = moveFocus(c!.g, action);
-        }
-        apply(next.g, next.g, next.affinity);
+        const edge = backward ? r.start : r.end;
+        apply(edge, edge, backward ? "downstream" : "upstream");
         setPhase("idle");
-        revealCaret(next);
         return;
       }
 

@@ -248,7 +248,7 @@ pnpm db:migrate:remote  # D1 迁移（远程）
 
 ## 9. 后续路线
 
-1. ~~接入选区系统~~（已完成，见 §7：`src/selection/` 全新引擎）。~~选区方向性（anchor/focus 语义完整化）、可见光标~~（2026-07-10 完成：单击放置闪烁光标、Chromium 折叠/移动语义、caret affinity、`direction`/`caret` API，见 selection-contract.md §3）。剩余可迭代方向：触屏交互接管。
+1. ~~接入选区系统~~（已完成，见 §7：`src/selection/` 全新引擎）。~~选区方向性（anchor/focus 语义完整化）~~（2026-07-10 完成：`direction`/`caret` API、Chromium 折叠语义、caret affinity，见 selection-contract.md §3）。**可见光标已实现后被有意移除**（2026-07-11 产品决定）：编辑器式文内光标与路线 2 想引导的"选中文本→行间评论"交互相竞争；caret 的位置+affinity 模型保留为插入点 API，仅不渲染。剩余可迭代方向：触屏交互接管。
 2. 行间评论/富组件插入——`data-atomic` + 块分裂机制。
 3. 自定义域名 + `site.ts`/脚本 URL 更新；Cloudflare Images loader。
 4. Bio 占位文案替换；`opengraph-image.tsx`（satori）；RSS 全文输出。

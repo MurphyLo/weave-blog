@@ -116,10 +116,9 @@ outline can't split or self-intersect), fully-covered lines extend to the
 column's left edge (bullets, blockquote borders and pre padding sit inside
 the highlight, keeping the left edge flush across block kinds), and
 components (figures, demos, formulas, tables) are selected as whole units
-with a rounded ring. A click places a visible blinking caret; full
-keyboard navigation (word/line/block/document granularities, goal column,
-Chromium collapse semantics for plain arrows), Cmd/Ctrl+A, and copy that
-emits source form (`$latex$`, `![alt](src)`).
+with a rounded ring. Full
+keyboard navigation (word/line/block/document granularities, goal column),
+Cmd/Ctrl+A, and copy that emits source form (`$latex$`, `![alt](src)`).
 Fine-pointer devices only; touch keeps native selection.
 
 The DOM contract it consumes:

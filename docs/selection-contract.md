@@ -71,7 +71,7 @@
 ## 3. 引擎行为要点（src/selection/）
 
 - **交互**：拖选（含双击=词、三击=块的粒度拖选）、Shift+点击扩展、全键盘导航（字符/词/视觉行/块/文档/页 × extend，macOS/Win 修饰键映射，goal column）、Cmd/Ctrl+A、Escape、拖选近视口边缘自动滚动。规范依据：`../base/docs/selection-interaction-reference.md` 的 Chromium 行为表。
-- **可见光标与方向性**：单击放置闪烁光标（`.selection-caret`，选区折叠态的渲染）；无 Shift 的方向键按 Chromium 语义移动——有选区时 char 粒度仅折叠到方向端点，粗粒度折叠后再从该端点移动；无选区无光标时不拦截（保留页面滚动）。键盘移动后以 instant 滚动保光标可见（绕过全局 smooth）。Escape 同时清除选区与光标。`useSelection` 对外暴露 `range`（归一化）+ `direction`（anchor→focus 朝向）+ `caret`；`Caret.affinity`（upstream/downstream）消解软换行/块边界处"一个 flat 位置、两个视觉落点"的渲染歧义（行尾点击、End、前向移动 pin 到上一行行尾）。
+- **方向性与光标模型（无视觉光标）**：`useSelection` 对外暴露 `range`（归一化）+ `direction`（anchor→focus 朝向）+ `caret`（折叠位置模型）。单击、选区折叠都会更新 caret 模型并重武装 anchor（供 Shift+点击/方向键扩展），但**不渲染视觉光标**——这是 2026-07-11 的设计决定：阅读面要引导"选中文本→行间评论"的交互，编辑器式文内光标会与之竞争心智。因此无 Shift 方向键仅在有选区时生效（折叠到方向端点）；无选区时不拦截，保留页面默认滚动。Shift 扩展后以 instant 滚动保 focus 端可见（绕过全局 `scroll-behavior: smooth`）。`Caret.affinity`（upstream/downstream）消解软换行/块边界处"一个 flat 位置、两个视觉落点"的歧义，由 `measure.caretRect()` 换算为几何——这对模型即未来块分裂/插入点（行间评论、富组件插入）的定位地基。
 - **形状连续性**：选区按 block 原子切分为文本段；每段做纵向 band 分解（行带 + 间隙带无缝铺满），相邻带 x 必然重叠（交集收腰，过窄回退为并集 S 弯）→ 单一简单多边形，`fill-rule:nonzero`。跨代码块/列表/标题的 markdown 间隙全部由间隙带覆盖，不断裂。
 - **左缘吞列**：完整选中的行与选区自上方延续进入的行，左缘取文章列左缘（吞并 bullet/引用边线/pre padding/嵌套缩进），跨块左缘对齐为一条直线；选区起点所在行保持 caret 精确。居中/右对齐块豁免（按块 computed `text-align` 判定，存于 `BlockInfo.flushLeft`）。
 - **组件选区**：block 原子仅通过拖选扫过/键盘跨越纳入（单击不选中）；高亮环与文本层共用同一阶段机呼吸——拖选中贴紧组件盒、方角（radius 2），松开沿 inhale/exhale 曲线外扩 3px 并鼓成组件自身圆角+3。原子内部（Chat 输入框、Poll 按钮）交互与原生选区完全不受影响（`user-select: auto`、pointerdown 放行）。
