@@ -1011,3 +1011,25 @@ sup a.basic-link {
   background: oklch(0.92 0.05 var(--selection-h) / 0.4);
   box-shadow: inset 0 0 0 1px oklch(0.72 0.08 var(--selection-h) / 0.3);
 }
+
+/* Visible caret (collapsed selection): a click places it, plain arrow keys
+   move it. currentColor is the prose ink; multiply keeps it unchanged over
+   the page background. */
+.selection-caret {
+  position: absolute;
+  width: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  animation: selection-caret-blink 1.12s step-end infinite;
+}
+@keyframes selection-caret-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}

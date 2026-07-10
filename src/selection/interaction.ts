@@ -1,7 +1,9 @@
 // Selection state machine and event wiring: pointer drags (with multi-click
 // word/block granularity), the keyboard command table, copy override, and
-// drag auto-scroll. Owns anchor/focus refs; the rendered `range` is always
-// the normalized min/max form.
+// drag auto-scroll. Owns anchor/focus; the rendered `range` is always the
+// normalized min/max form, with `direction` carrying the anchor→focus
+// orientation and `caret` the visible collapsed cursor (a click places it,
+// plain arrow keys move it, Shift extends from it).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
@@ -11,6 +13,9 @@ import { createMeasure, type Measure } from "./measure";
 import { actionForKey, type NavAction } from "./keymap";
 import {
   isAtomic,
+  type Caret,
+  type CaretAffinity,
+  type Direction,
   type DragUnit,
   type LayoutSnapshot,
   type Line,
@@ -110,6 +115,12 @@ function unitEntryFor(g: number, line: Line | null): number {
   return line && g === line.endG && g > line.startG ? g - 1 : g;
 }
 
+/** A pointer resolving to its line's end sits on a boundary position: the
+ * caret must render at that line's right edge, not the next line's start. */
+function pointAffinity(g: number, line: Line | null): CaretAffinity {
+  return line && g === line.endG && g > line.startG ? "upstream" : "downstream";
+}
+
 export function blockRangeAt(snapshot: LayoutSnapshot, g: number): SelectionRange {
   const total = snapshot.flatChars.length;
   if (!total) return { start: 0, end: 0 };
@@ -147,7 +158,6 @@ function wordLeft(snapshot: LayoutSnapshot, cache: BlockTextCache, g: number): n
   const entry = snapshot.flatChars[g - 1];
   if (isAtomic(entry)) return g - 1;
   const bt = blockTextFor(snapshot, cache, entry.blockIdx);
-  const off = offsetForG(bt, g);
   let best = -1;
   for (const seg of words.segment(bt.text)) {
     if (!(seg as Intl.SegmentData & { isWordLike?: boolean }).isWordLike) continue;
@@ -161,6 +171,10 @@ function wordLeft(snapshot: LayoutSnapshot, cache: BlockTextCache, g: number): n
 
 export interface SelectionApi {
   range: SelectionRange | null;
+  /** Anchor→focus orientation of `range`; null while collapsed. */
+  direction: Direction | null;
+  /** Visible collapsed cursor; null while a range is active. */
+  caret: Caret | null;
   phase: Phase;
   measure: Measure | null;
   onPointerDown(e: React.PointerEvent): void;
@@ -172,6 +186,8 @@ export function useSelection(
   snapshot: LayoutSnapshot | null,
 ): SelectionApi {
   const [range, setRange] = useState<SelectionRange | null>(null);
+  const [direction, setDirection] = useState<Direction | null>(null);
+  const [caret, setCaret] = useState<Caret | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
 
   const measure = useMemo(() => (snapshot ? createMeasure(snapshot) : null), [snapshot]);
@@ -179,9 +195,11 @@ export function useSelection(
   const snapRef = useRef(snapshot);
   const measureRef = useRef(measure);
   const rangeRef = useRef(range);
+  const caretRef = useRef(caret);
   snapRef.current = snapshot;
   measureRef.current = measure;
   rangeRef.current = range;
+  caretRef.current = caret;
 
   const anchorRef = useRef<number | null>(null);
   const focusRef = useRef<number | null>(null);
@@ -205,7 +223,7 @@ export function useSelection(
   );
 
   // A rebuilt snapshot keeps entry indices stable (same DOM content), but a
-  // shrunk one must not leave a dangling range.
+  // shrunk one must not leave a dangling range or caret.
   useEffect(() => {
     blockTextCacheRef.current = new Map();
     dragLineRef.current = null; // stale Line objects reference the old snapshot
@@ -214,20 +232,35 @@ export function useSelection(
     const r = rangeRef.current;
     if (r && r.end > total) {
       setRange(null);
+      setDirection(null);
       setPhase("idle");
       anchorRef.current = focusRef.current = null;
     }
+    const c = caretRef.current;
+    if (c && c.g > total) setCaret(null);
   }, [snapshot]);
 
-  const apply = useCallback((anchor: number, focus: number) => {
-    anchorRef.current = anchor;
-    focusRef.current = focus;
-    if (anchor === focus) setRange(null);
-    else setRange({ start: Math.min(anchor, focus), end: Math.max(anchor, focus) });
-  }, []);
+  const apply = useCallback(
+    (anchor: number, focus: number, affinity: CaretAffinity = "downstream") => {
+      anchorRef.current = anchor;
+      focusRef.current = focus;
+      if (anchor === focus) {
+        setRange(null);
+        setDirection(null);
+        setCaret({ g: focus, affinity });
+      } else {
+        setRange({ start: Math.min(anchor, focus), end: Math.max(anchor, focus) });
+        setDirection(focus < anchor ? "backward" : "forward");
+        setCaret(null);
+      }
+    },
+    [],
+  );
 
   const clearAll = useCallback(() => {
     setRange(null);
+    setDirection(null);
+    setCaret(null);
     setPhase("idle");
     dragBaseRef.current = null;
     goalXRef.current = null;
@@ -247,7 +280,7 @@ export function useSelection(
       focusRef.current = g;
       const unit = dragUnitRef.current;
       if (unit === "char" || !dragBaseRef.current) {
-        apply(anchorRef.current ?? g, g);
+        apply(anchorRef.current ?? g, g, pointAffinity(g, line));
         return;
       }
       const cache = blockTextCacheRef.current;
@@ -259,14 +292,8 @@ export function useSelection(
         end: Math.max(base.end, u.end),
       };
       // Anchor stays on the initial unit; focus follows the moving side.
-      if (u.start < base.start) {
-        anchorRef.current = merged.end;
-        focusRef.current = merged.start;
-      } else {
-        anchorRef.current = merged.start;
-        focusRef.current = merged.end;
-      }
-      setRange(merged);
+      if (u.start < base.start) apply(merged.end, merged.start);
+      else apply(merged.start, merged.end);
     },
     [apply],
   );
@@ -343,11 +370,10 @@ export function useSelection(
         apply(r.start, r.end);
         setPhase("dragging");
       } else {
+        // Single click: place the visible caret (collapsed selection).
         dragUnitRef.current = "char";
         dragBaseRef.current = null;
-        anchorRef.current = g;
-        focusRef.current = g;
-        setRange(null);
+        apply(g, g, pointAffinity(g, line));
         setPhase("idle");
       }
 
@@ -396,62 +422,93 @@ export function useSelection(
 
   // --- keyboard ------------------------------------------------------------
 
+  // Moves return a Caret (position + affinity) so a boundary landing renders
+  // on the right visual line: forward moves onto a line/block end pin
+  // upstream, backward moves onto a start pin downstream. Affinity falls
+  // back gracefully at non-boundary positions (see Caret in types.ts).
   const moveFocus = useCallback(
-    (g: number, action: Extract<NavAction, { type: "move" }>): number => {
+    (g: number, action: Extract<NavAction, { type: "move" }>): Caret => {
       const s = snapRef.current;
       const m = measureRef.current;
-      if (!s || !m) return g;
+      const keep: Caret = { g, affinity: "downstream" };
+      if (!s || !m) return keep;
       const total = s.flatChars.length;
       const cache = blockTextCacheRef.current;
       const { dir, granularity } = action;
       const backward = dir === "left" || dir === "up";
+      const up = (v: number): Caret => ({ g: v, affinity: "upstream" });
+      const down = (v: number): Caret => ({ g: v, affinity: "downstream" });
+      const lineTarget = (target: Line): Caret => {
+        if (target.kind === "atomic") return backward ? down(target.startG) : up(target.endG);
+        const v = m.gAtLineX(target, goalXRef.current ?? 0);
+        return { g: v, affinity: pointAffinity(v, target) };
+      };
 
       switch (granularity) {
         case "char":
-          return backward ? Math.max(0, g - 1) : Math.min(total, g + 1);
+          return backward ? down(Math.max(0, g - 1)) : up(Math.min(total, g + 1));
         case "word":
-          return backward ? wordLeft(s, cache, g) : wordRight(s, cache, g, isMac);
+          if (backward) return down(wordLeft(s, cache, g));
+          // macOS lands at a word's end (boundary → upstream); Windows at
+          // the next word's start.
+          return (isMac ? up : down)(wordRight(s, cache, g, isMac));
         case "lineBoundary": {
           const line = m.lineOf(g);
-          return line ? (backward ? line.startG : line.endG) : g;
+          return line ? (backward ? down(line.startG) : up(line.endG)) : keep;
         }
         case "block": {
           const entry = s.flatChars[Math.min(g, total - 1)];
-          if (!entry) return g;
+          if (!entry) return keep;
           const block = s.blocks[entry.blockIdx];
           if (backward) {
-            if (g > block.start) return block.start;
-            return block.idx > 0 ? s.blocks[block.idx - 1].start : 0;
+            if (g > block.start) return down(block.start);
+            return down(block.idx > 0 ? s.blocks[block.idx - 1].start : 0);
           }
-          if (g < block.end) return block.end;
-          return block.idx + 1 < s.blocks.length ? s.blocks[block.idx + 1].end : total;
+          if (g < block.end) return up(block.end);
+          return up(block.idx + 1 < s.blocks.length ? s.blocks[block.idx + 1].end : total);
         }
         case "doc":
-          return backward ? 0 : total;
+          return backward ? down(0) : up(total);
         case "line": {
           const line = m.lineOf(g);
-          if (!line) return g;
+          if (!line) return keep;
           if (goalXRef.current == null) goalXRef.current = m.caretX(g, line);
           const target = s.lines[line.idx + (backward ? -1 : 1)];
-          if (!target) return backward ? 0 : total;
-          if (target.kind === "atomic") return backward ? target.startG : target.endG;
-          return m.gAtLineX(target, goalXRef.current);
+          if (!target) return backward ? down(0) : up(total);
+          return lineTarget(target);
         }
         case "page": {
           const line = m.lineOf(g);
-          if (!line) return g;
+          if (!line) return keep;
           if (goalXRef.current == null) goalXRef.current = m.caretX(g, line);
           const targetY =
             line.rect.y + line.rect.h / 2 + (backward ? -1 : 1) * window.innerHeight * 0.85;
           const target = m.lineAt(targetY);
-          if (!target) return g;
-          if (target.kind === "atomic") return backward ? target.startG : target.endG;
-          return m.gAtLineX(target, goalXRef.current);
+          return target ? lineTarget(target) : keep;
         }
       }
     },
     [isMac],
   );
+
+  // Keep the caret (or the extending focus) on screen after a keyboard
+  // move, mirroring the browser's scroll-to-caret.
+  const revealCaret = useCallback((c: Caret) => {
+    const s = snapRef.current;
+    const m = measureRef.current;
+    if (!s || !m) return;
+    const r = m.caretRect(c);
+    if (!r) return;
+    const top = s.root.getBoundingClientRect().top + r.y;
+    const bottom = top + r.h;
+    const margin = 64;
+    // behavior: instant — native caret reveal doesn't animate, and the
+    // page's global scroll-behavior: smooth would lag repeated key presses.
+    if (top < margin) window.scrollBy({ top: top - margin, behavior: "instant" });
+    else if (bottom > window.innerHeight - margin) {
+      window.scrollBy({ top: bottom - (window.innerHeight - margin), behavior: "instant" });
+    }
+  }, []);
 
   useEffect(() => {
     if (!snapshot || !measure) return;
@@ -472,7 +529,7 @@ export function useSelection(
         return;
       }
       if (action.type === "clear") {
-        if (!rangeRef.current) return;
+        if (!rangeRef.current && !caretRef.current) return;
         e.preventDefault();
         clearAll();
         return;
@@ -483,17 +540,28 @@ export function useSelection(
       }
 
       if (!action.extend) {
-        // No caret is rendered in this read-only context: a plain move
-        // collapses the selection to the directional edge and re-arms the
-        // anchor there for subsequent Shift-extends.
+        // Plain move (Chromium semantics): with a range, char moves only
+        // collapse to the directional edge; coarser moves collapse then
+        // move from that edge. With a caret, move it. With neither, keep
+        // the browser's defaults (page scroll).
         const r = rangeRef.current;
-        if (!r) return; // let the page scroll
+        const c = caretRef.current;
+        if (!r && !c) return;
         e.preventDefault();
         const backward = action.dir === "left" || action.dir === "up";
-        const edge = backward ? r.start : r.end;
-        anchorRef.current = focusRef.current = edge;
-        setRange(null);
+        let next: Caret;
+        if (r) {
+          const edge = backward ? r.start : r.end;
+          next =
+            action.granularity === "char"
+              ? { g: edge, affinity: backward ? "downstream" : "upstream" }
+              : moveFocus(edge, action);
+        } else {
+          next = moveFocus(c!.g, action);
+        }
+        apply(next.g, next.g, next.affinity);
         setPhase("idle");
+        revealCaret(next);
         return;
       }
 
@@ -503,8 +571,9 @@ export function useSelection(
       if (anchorRef.current == null) anchorRef.current = from;
       const next = moveFocus(from, action);
       keyboardExtendRef.current = true;
-      apply(anchorRef.current, next);
-      setPhase(next === anchorRef.current ? "idle" : "dragging");
+      apply(anchorRef.current, next.g, next.affinity);
+      setPhase(next.g === anchorRef.current ? "idle" : "dragging");
+      revealCaret(next);
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
@@ -519,7 +588,7 @@ export function useSelection(
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [snapshot, measure, isMac, apply, clearAll, moveFocus]);
+  }, [snapshot, measure, isMac, apply, clearAll, moveFocus, revealCaret]);
 
   // --- copy & native-selection suppression ----------------------------------
 
@@ -553,5 +622,5 @@ export function useSelection(
     };
   }, [rootRef, snapshot]);
 
-  return { range, phase, measure, onPointerDown, onClickCapture };
+  return { range, direction, caret, phase, measure, onPointerDown, onClickCapture };
 }

@@ -63,9 +63,15 @@
 
 任何位于 `[data-block]` 内部或与正文混排、但不属于正文文本的 UI，必须带 `aria-hidden="true"`。现有实例：CodeFigure 复制按钮、Notation 浮动标签、Demo caption、文章 header 的 ViewCounter/LikeButton 容器。
 
+**视觉隐藏文本同理**——glyph 不可见但 Range rect 仍真实存在（甚至在屏外），会污染字符流和选区几何：
+
+- GFM 脚注 backref（`a[data-footnote-backref]`，"↩"）被 article.css 做成整条不可见热区（`text-indent: -9999px`，rect 在 x≈-9500）。`rehype-atomic.ts` 构建期给它补 `aria-hidden="true"` + `tabindex="-1"`。
+- `.sr-only` 元素（GFM 的 `h2.sr-only` 脚注标题）由 `rehype-data-block.ts` 整体 SKIP——不标 data-block、不入字符流，但保留在无障碍树（对屏幕阅读器仍可见，所以**不能**用 aria-hidden）。
+
 ## 3. 引擎行为要点（src/selection/）
 
 - **交互**：拖选（含双击=词、三击=块的粒度拖选）、Shift+点击扩展、全键盘导航（字符/词/视觉行/块/文档/页 × extend，macOS/Win 修饰键映射，goal column）、Cmd/Ctrl+A、Escape、拖选近视口边缘自动滚动。规范依据：`../base/docs/selection-interaction-reference.md` 的 Chromium 行为表。
+- **可见光标与方向性**：单击放置闪烁光标（`.selection-caret`，选区折叠态的渲染）；无 Shift 的方向键按 Chromium 语义移动——有选区时 char 粒度仅折叠到方向端点，粗粒度折叠后再从该端点移动；无选区无光标时不拦截（保留页面滚动）。键盘移动后以 instant 滚动保光标可见（绕过全局 smooth）。Escape 同时清除选区与光标。`useSelection` 对外暴露 `range`（归一化）+ `direction`（anchor→focus 朝向）+ `caret`；`Caret.affinity`（upstream/downstream）消解软换行/块边界处"一个 flat 位置、两个视觉落点"的渲染歧义（行尾点击、End、前向移动 pin 到上一行行尾）。
 - **形状连续性**：选区按 block 原子切分为文本段；每段做纵向 band 分解（行带 + 间隙带无缝铺满），相邻带 x 必然重叠（交集收腰，过窄回退为并集 S 弯）→ 单一简单多边形，`fill-rule:nonzero`。跨代码块/列表/标题的 markdown 间隙全部由间隙带覆盖，不断裂。
 - **左缘吞列**：完整选中的行与选区自上方延续进入的行，左缘取文章列左缘（吞并 bullet/引用边线/pre padding/嵌套缩进），跨块左缘对齐为一条直线；选区起点所在行保持 caret 精确。居中/右对齐块豁免（按块 computed `text-align` 判定，存于 `BlockInfo.flushLeft`）。
 - **组件选区**：block 原子仅通过拖选扫过/键盘跨越纳入（单击不选中）；高亮环与文本层共用同一阶段机呼吸——拖选中贴紧组件盒、方角（radius 2），松开沿 inhale/exhale 曲线外扩 3px 并鼓成组件自身圆角+3。原子内部（Chat 输入框、Poll 按钮）交互与原生选区完全不受影响（`user-select: auto`、pointerdown 放行）。

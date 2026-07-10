@@ -7,7 +7,7 @@
 // live bounding rect, so page scroll needs no special handling.
 
 import { entryClientRect } from "./layout";
-import type { LayoutSnapshot, Line, Pt } from "./types";
+import type { Caret, LayoutSnapshot, Line, Pt, Rect } from "./types";
 
 /** Drag hysteresis (px): in a gap wider than ordinary line spacing, the
  * previously resolved line keeps the point until the pointer comes within
@@ -30,6 +30,9 @@ export interface Measure {
   caretX(g: number, line: Line): number;
   /** Line containing cursor position g (last line for g == total). */
   lineOf(g: number): Line | null;
+  /** Zero-width caret box (article-local) for a collapsed cursor; the
+   * line's full height. Affinity resolves boundary positions (see Caret). */
+  caretRect(caret: Caret): Rect | null;
 }
 
 export function createMeasure(snapshot: LayoutSnapshot): Measure {
@@ -130,5 +133,15 @@ export function createMeasure(snapshot: LayoutSnapshot): Measure {
     return lines.length ? lines[lines.length - 1] : null;
   }
 
-  return { toLocal, lineAt, gAtPoint, gAtLineX, caretX, lineOf };
+  function caretRect(caret: Caret): Rect | null {
+    let line: Line | null = null;
+    if (caret.affinity === "upstream") {
+      line = lines.find((l) => l.endG === caret.g && l.startG < caret.g) ?? null;
+    }
+    line ??= lineOf(caret.g);
+    if (!line) return null;
+    return { x: caretX(caret.g, line), y: line.rect.y, w: 0, h: line.rect.h };
+  }
+
+  return { toLocal, lineAt, gAtPoint, gAtLineX, caretX, lineOf, caretRect };
 }

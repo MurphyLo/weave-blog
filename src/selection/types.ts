@@ -50,6 +50,23 @@ export interface SelectionRange {
   end: number;
 }
 
+/** Anchor→focus orientation of a non-collapsed selection. */
+export type Direction = "forward" | "backward";
+
+export type CaretAffinity = "downstream" | "upstream";
+
+/**
+ * Collapsed cursor. A boundary cursor position (soft wrap or block edge) is
+ * a single flat index with two visual spots; affinity picks one: "upstream"
+ * renders at the end of the line that ends there (falling back to the
+ * containing line when the position is not a boundary), "downstream" at the
+ * start of the line that begins there.
+ */
+export interface Caret {
+  g: number;
+  affinity: CaretAffinity;
+}
+
 export interface BlockInfo {
   idx: number;
   el: HTMLElement;

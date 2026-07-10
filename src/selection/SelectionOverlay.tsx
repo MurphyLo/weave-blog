@@ -18,7 +18,7 @@ import {
 import { pathForSegments, rowsForRange, type SelectionRows } from "./geometry";
 import { localRect } from "./layout";
 import type { Measure } from "./measure";
-import type { LayoutSnapshot, Phase, Rect, SelectionRange } from "./types";
+import type { Caret, LayoutSnapshot, Phase, Rect, SelectionRange } from "./types";
 
 type Stage = "drag" | "inhale" | "exhale" | "deflate";
 
@@ -97,11 +97,13 @@ export function SelectionOverlay({
   snapshot,
   measure,
   range,
+  caret,
   phase,
 }: {
   snapshot: LayoutSnapshot | null;
   measure: Measure | null;
   range: SelectionRange | null;
+  caret: Caret | null;
   phase: Phase;
 }) {
   const [stage, setStage] = useState<Stage>("drag");
@@ -150,6 +152,13 @@ export function SelectionOverlay({
     if (!snapshot || !measure || !range || range.end <= range.start) return null;
     return rowsForRange(snapshot, measure, range);
   }, [snapshot, measure, range]);
+
+  // Remounting on every position change (key) restarts the blink cycle, so
+  // a moving caret is solidly visible — same as the native caret.
+  const caretRect = useMemo(
+    () => (caret && measure ? measure.caretRect(caret) : null),
+    [caret, measure],
+  );
 
   const atomics: AtomicHighlight[] = useMemo(() => {
     if (!shape || !snapshot) return [];
@@ -214,6 +223,13 @@ export function SelectionOverlay({
           <AtomicRing key={a.key} stage={stage} a={a} />
         ))}
       </AnimatePresence>
+      {caret && caretRect && (
+        <div
+          key={`${caret.g}:${caret.affinity}`}
+          className="selection-caret"
+          style={{ left: caretRect.x - 1, top: caretRect.y, height: caretRect.h }}
+        />
+      )}
     </div>
   );
 }
