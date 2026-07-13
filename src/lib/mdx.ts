@@ -1,4 +1,5 @@
 import { evaluate } from "next-mdx-remote-client/rsc";
+import remarkFlexibleMarkers from "remark-flexible-markers";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -42,6 +43,7 @@ export async function renderPost(
         remarkPlugins: [
           remarkGfm,
           remarkMath,
+          remarkFlexibleMarkers,
           [remarkTocHeadings, { out: headings }],
         ],
         rehypePlugins,
