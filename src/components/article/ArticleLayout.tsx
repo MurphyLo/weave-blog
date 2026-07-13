@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { TocHeading } from "@/lib/remark-toc-headings";
+import type { TocHeading } from "@/lib/mdx";
 import { SelectionRoot } from "@/selection/SelectionRoot";
 import { BackButton } from "./BackButton";
 import { HashHighlight } from "./HashHighlight";

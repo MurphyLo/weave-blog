@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 
-import type { TocHeading } from "@/lib/remark-toc-headings";
+import type { TocHeading } from "@/lib/mdx";
 
 // Ported from benji's TableOfContents, with one structural change: headings
-// come as build-time props (extracted by remark-toc-headings) instead of
+// come as build-time props (extracted by remark-flexible-toc) instead of
 // being auto-discovered from the DOM, so the list is server-rendered.
 
 const getOffsetTop = (el: Element) =>
